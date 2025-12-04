@@ -1,61 +1,65 @@
 // lib/onboarding.ts
-// Cold-start 설문 관련 API 함수들
+// 온보딩 관련 API 함수들
 
 import api from "./api";
-import type {
-  ApiSuccessResponse,
-  Tag,
-  Outfit,
-  OnboardingRequest,
-} from "@/types/api";
+import type { ApiSuccessResponse } from "@/types/api";
 
 /**
  * ============================================
- * 2.1 사용 가능한 태그 목록 조회
- * GET /api/onboarding/tags
+ * 온보딩 타입 정의
  * ============================================
  */
-export const getTags = async () => {
+
+export interface Tag {
+  id: number;
+  name: string;
+}
+
+export interface SampleOutfit {
+  id: number;
+  imageUrl: string;
+  style: string;
+  season: string;
+}
+
+export interface PreferenceOptions {
+  hashtags: Tag[];
+  sampleOutfits: SampleOutfit[];
+}
+
+export interface SetPreferencesRequest {
+  hashtagIds: number[];
+  sampleOutfitIds: number[];
+}
+
+/**
+ * ============================================
+ * 선호도 설정 옵션 조회
+ * GET /api/users/preferences/options
+ * ============================================
+ */
+export const getPreferenceOptions = async () => {
   const response = await api.get<
-    ApiSuccessResponse<{
-      tags: Tag[];
-    }>
-  >("/onboarding/tags");
+    ApiSuccessResponse<PreferenceOptions>
+  >("/users/preferences/options");
   return response.data;
 };
 
 /**
  * ============================================
- * 2.2 샘플 코디 목록 조회
- * GET /api/onboarding/sample-coordis
+ * 선호도 설정 (온보딩 완료)
+ * POST /api/users/preferences
  * ============================================
  */
-export const getSampleCoordis = async (params?: {
-  gender?: "male" | "female";
-  season?: "spring" | "summer" | "fall" | "winter";
-}) => {
-  const response = await api.get<
-    ApiSuccessResponse<{
-      coordis: Outfit[];
-    }>
-  >("/onboarding/sample-coordis", { params });
-  return response.data;
-};
-
-/**
- * ============================================
- * 2.3 온보딩 정보 제출
- * POST /api/onboarding
- * ============================================
- */
-export const submitOnboarding = async (data: OnboardingRequest) => {
+export const setPreferences = async (data: SetPreferencesRequest) => {
   const response = await api.post<
     ApiSuccessResponse<{
       message: string;
       user: {
+        id: number;
         hasCompletedOnboarding: boolean;
       };
     }>
-  >("/onboarding", data);
+  >("/users/preferences", data);
   return response.data;
 };

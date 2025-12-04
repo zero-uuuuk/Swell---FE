@@ -195,7 +195,7 @@ export default function StartPage() {
               </div>
             ) : (
               // 회원가입 폼
-              <div className="space-y-4">
+              <div className="space-y-4 h-[660px]">
                 {error && (
                   <p className="text-red-500 text-sm text-left px-1">
                     {error}
