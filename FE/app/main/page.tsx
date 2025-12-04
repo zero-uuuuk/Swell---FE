@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getRecommendations, addFavorite, removeFavorite, recordViewLog } from "@/lib/outfits";
+import { getRecommendations, addFavorite, removeFavorite, recordViewLog, skipOutfit } from "@/lib/outfits";
 import { saveClosetItem } from "@/lib/closet";
 import { logout } from "@/lib/auth";
 import type { Outfit, Season, Style } from "@/types/api";
@@ -84,14 +84,53 @@ export default function MainPage() {
     setError("");
 
     try {
-      const response = await getRecommendations({
-        page: 1,
-        limit: 20,
-      });
+      // 로컬 스토리지에서 저장된 상태 확인
+      const savedOutfitsStr = localStorage.getItem("mainPageOutfits");
+      const savedOutfitId = localStorage.getItem("mainPageCurrentOutfitId");
+      const savedPage = localStorage.getItem("mainPageCurrentPage");
 
-      setAllOutfits(response.data.outfits);
-      setCurrentIndex(0);
-      setViewStartTime(Date.now());
+      if (savedOutfitsStr && savedOutfitId) {
+        // 저장된 코디 목록 복원
+        const savedOutfits = JSON.parse(savedOutfitsStr);
+        setAllOutfits(savedOutfits);
+        setCurrentPage(parseInt(savedPage || "1", 10));
+
+        // 저장된 코디 ID로 인덱스 찾기
+        const outfitId = parseInt(savedOutfitId, 10);
+        const foundIndex = savedOutfits.findIndex((outfit: any) => outfit.id === outfitId);
+
+        console.log("복원 시도: 저장된 ID =", outfitId, "찾은 인덱스 =", foundIndex);
+        console.log("전체 코디 수:", savedOutfits.length);
+        console.log("첫 3개 코디 ID:", savedOutfits.slice(0, 3).map((o: any) => o.id));
+
+        if (foundIndex !== -1) {
+          setCurrentIndex(foundIndex);
+          console.log("✅ 복원 성공: 인덱스", foundIndex, "로 이동");
+        } else {
+          setCurrentIndex(0);
+          console.log("❌ 복원 실패: 코디 ID 못 찾음, 0번부터 시작");
+        }
+
+        setViewStartTime(Date.now());
+        setLoading(false);
+      } else {
+        // 새로운 추천 받기
+        const response = await getRecommendations({
+          page: 1,
+          limit: 20,
+        });
+
+        setAllOutfits(response.data.outfits);
+        setCurrentIndex(0);
+        setCurrentPage(1);
+        setViewStartTime(Date.now());
+
+        // 로컬 스토리지에 저장
+        localStorage.setItem("mainPageOutfits", JSON.stringify(response.data.outfits));
+        localStorage.setItem("mainPageCurrentPage", "1");
+
+        console.log("새로운 추천 받음:", response.data.outfits.length, "개 코디");
+      }
     } catch (err: any) {
       console.error("코디 로딩 실패:", err);
       setError("코디를 불러오는데 실패했습니다");
@@ -111,8 +150,13 @@ export default function MainPage() {
         limit: 20,
       });
 
-      setAllOutfits([...allOutfits, ...response.data.outfits]);
+      const newOutfits = [...allOutfits, ...response.data.outfits];
+      setAllOutfits(newOutfits);
       setCurrentPage(currentPage + 1);
+
+      // 로컬 스토리지 업데이트
+      localStorage.setItem("mainPageOutfits", JSON.stringify(newOutfits));
+      localStorage.setItem("mainPageCurrentPage", (currentPage + 1).toString());
     } catch (err: any) {
       console.error("추가 코디 로딩 실패:", err);
     } finally {
@@ -125,12 +169,39 @@ export default function MainPage() {
     fetchOutfits();
   }, []);
 
-  // 필터 변경 시 인덱스 리셋
+  // 필터 변경 추적용 ref
+  const prevSeasonRef = useRef<Season | undefined>(selectedSeason);
+  const prevStyleRef = useRef<Style | undefined>(selectedStyle);
+  const isFirstRenderRef = useRef(true);
+
+  // 필터 변경 시 인덱스 리셋 (초기 렌더링 제외)
   useEffect(() => {
-    setCurrentIndex(0);
+    // 첫 렌더링은 건너뛰기
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false;
+      prevSeasonRef.current = selectedSeason;
+      prevStyleRef.current = selectedStyle;
+      return;
+    }
+
+    // 실제로 필터가 변경되었을 때만 리셋
+    if (prevSeasonRef.current !== selectedSeason || prevStyleRef.current !== selectedStyle) {
+      setCurrentIndex(0);
+      console.log("필터 변경: 인덱스 0으로 리셋");
+      prevSeasonRef.current = selectedSeason;
+      prevStyleRef.current = selectedStyle;
+    }
   }, [selectedSeason, selectedStyle]);
 
   const currentOutfit = outfits[currentIndex];
+
+  // 현재 위치를 로컬 스토리지에 저장 (코디 ID 기준)
+  useEffect(() => {
+    if (currentOutfit) {
+      localStorage.setItem("mainPageCurrentOutfitId", currentOutfit.id.toString());
+      console.log("저장: 코디 ID =", currentOutfit.id, "인덱스 =", currentIndex);
+    }
+  }, [currentOutfit, currentIndex]);
 
   // View log 기록 함수
   const recordCurrentView = async () => {
@@ -166,6 +237,13 @@ export default function MainPage() {
       // 현재 코디의 view log 기록 (백그라운드, await 없이)
       recordCurrentView();
 
+      // 좋아요가 없으면 skip 기록 (백그라운드)
+      if (currentOutfit && !currentOutfit.isFavorite) {
+        skipOutfit(currentOutfit.id).catch(err => {
+          console.error("Skip 기록 실패:", err);
+        });
+      }
+
       setIsTransitioning(true);
       setTimeout(() => {
         setCurrentIndex(currentIndex + 1);
@@ -188,18 +266,24 @@ export default function MainPage() {
     try {
       if (currentOutfit.isFavorite) {
         await removeFavorite(currentOutfit.id);
-        setAllOutfits(allOutfits.map(outfit =>
+        const updatedOutfits = allOutfits.map(outfit =>
           outfit.id === currentOutfit.id
             ? { ...outfit, isFavorite: false }
             : outfit
-        ));
+        );
+        setAllOutfits(updatedOutfits);
+        // 로컬 스토리지 업데이트
+        localStorage.setItem("mainPageOutfits", JSON.stringify(updatedOutfits));
       } else {
         await addFavorite(currentOutfit.id);
-        setAllOutfits(allOutfits.map(outfit =>
+        const updatedOutfits = allOutfits.map(outfit =>
           outfit.id === currentOutfit.id
             ? { ...outfit, isFavorite: true }
             : outfit
-        ));
+        );
+        setAllOutfits(updatedOutfits);
+        // 로컬 스토리지 업데이트
+        localStorage.setItem("mainPageOutfits", JSON.stringify(updatedOutfits));
       }
     } catch (err: any) {
       console.error("좋아요 실패:", err);
@@ -210,6 +294,11 @@ export default function MainPage() {
   // 로그아웃
   const handleLogout = async () => {
     try {
+      // 로컬 스토리지 클리어
+      localStorage.removeItem("mainPageOutfits");
+      localStorage.removeItem("mainPageCurrentOutfitId");
+      localStorage.removeItem("mainPageCurrentPage");
+
       await logout();
       router.push("/start");
     } catch (err) {
