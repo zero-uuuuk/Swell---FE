@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { getFavorites, removeFavorite } from "@/lib/outfits";
 import { saveClosetItem } from "@/lib/closet";
 import { logout } from "@/lib/auth";
+import HeartIcon from "@/components/common/HeartIcon";
+import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import type { Outfit } from "@/types/api";
 
 export default function FavoritesPage() {
@@ -139,17 +141,30 @@ export default function FavoritesPage() {
     <div className="min-h-screen bg-gradient-to-b from-[rgba(86,151,176,0.45)] via-[rgba(255,244,234,0.65)] to-[rgba(255,244,234,1)] flex flex-col">
       {/* 상단 네비게이션 */}
       <nav className="bg-transparent px-6 py-4 flex justify-between items-center flex-shrink-0">
+        {/* 모바일: Swell 로고 / 데스크톱: ← Main + 페이지 제목 */}
         <div className="flex items-center gap-4">
+          {/* 데스크톱 전용 */}
           <button
             onClick={() => {
               sessionStorage.setItem("mainPageNavigating", "true");
               router.push("/main");
             }}
-            className="text-gray-600 hover:text-gray-800 font-medium"
+            className="hidden md:block text-gray-600 hover:text-gray-800 font-medium"
           >
             ← Main
           </button>
-          <h1 className="text-xl font-bold text-gray-800">좋아요한 코디</h1>
+          <h1 className="hidden md:block text-xl font-bold text-gray-800">좋아요한 코디</h1>
+
+          {/* 모바일 전용: Swell 로고 */}
+          <h1
+            className="md:hidden text-[20px] font-bold text-gray-900 flex items-center gap-2 cursor-pointer font-snippet"
+            onClick={() => {
+              sessionStorage.setItem("mainPageNavigating", "true");
+              router.push("/main");
+            }}
+          >
+            Swell
+          </h1>
         </div>
 
         {/* 프로필 드롭다운 */}
@@ -169,7 +184,7 @@ export default function FavoritesPage() {
                   handleLogout();
                   setShowDropdown(false);
                 }}
-                className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-sm"
+                className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-[13px]"
               >
                 🚪 Logout
               </button>
@@ -179,7 +194,7 @@ export default function FavoritesPage() {
       </nav>
 
       {/* 메인 컨텐츠 */}
-      <div className="flex-1 overflow-auto px-6 py-8">
+      <div className="flex-1 overflow-auto px-6 py-8 pb-20">
         {error && (
           <div className="text-center mb-6">
             <p className="text-red-500 mb-4">{error}</p>
@@ -224,9 +239,13 @@ export default function FavoritesPage() {
                         e.stopPropagation();
                         handleUnlike(outfit.id);
                       }}
-                      className="absolute top-3 right-3 w-12 h-12 bg-pink-50/90 backdrop-blur-sm rounded-full flex items-center justify-center text-2xl shadow-lg hover:scale-110 transition-all border border-white"
+                      className="absolute top-4 right-4 w-10 h-10 md:w-12 md:h-12 rounded-full shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-300 border bg-pink-50 border-pink-200 text-pink-500"
                     >
-                      ❤️
+                      <HeartIcon
+                        filled={true}
+                        size={20}
+                        className="scale-110"
+                      />
                     </button>
 
                     {/* LLM 메시지 */}
@@ -256,7 +275,7 @@ export default function FavoritesPage() {
 
             {/* 페이지네이션 */}
             {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-2 mt-8">
+              <div className="flex justify-center items-center gap-2 mt-8 mb-4">
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
@@ -399,6 +418,9 @@ export default function FavoritesPage() {
           </div>
         </div>
       )}
+
+      {/* 모바일 하단 네비게이션 바 */}
+      <MobileBottomNav />
     </div>
   );
 }

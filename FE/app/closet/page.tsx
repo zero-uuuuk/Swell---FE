@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { getClosetItems, deleteClosetItem } from "@/lib/closet";
 import { uploadProfilePhoto } from "@/lib/profile";
 import { startFitting, pollFittingStatus } from "@/lib/fitting";
+import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import type { ClosetItem } from "@/lib/closet";
 import type { FittingCategory } from "@/lib/fitting";
 
@@ -53,6 +54,9 @@ export default function ClosetPage() {
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 모바일 탭 상태 ('fitting' | 'items')
+  const [activeTab, setActiveTab] = useState<'fitting' | 'items'>('fitting');
 
   // 초기화
   useEffect(() => {
@@ -241,19 +245,32 @@ export default function ClosetPage() {
     <div className="h-screen bg-gradient-to-b from-[rgba(86,151,176,0.45)] via-[rgba(255,244,234,0.65)] to-[rgba(255,244,234,1)] flex flex-col overflow-hidden">
       {/* 상단 네비게이션 */}
       <nav className="bg-transparent px-6 py-4 flex justify-between items-center flex-shrink-0 w-full">
+        {/* 모바일: Swell 로고 / 데스크톱: ← Main + 페이지 제목 */}
         <div className="flex items-center gap-4">
+          {/* 데스크톱 전용 */}
           <button
             onClick={() => {
               sessionStorage.setItem("mainPageNavigating", "true");
               router.push("/main");
             }}
-            className="text-gray-600 hover:text-gray-800 font-medium"
+            className="hidden md:block text-gray-600 hover:text-gray-800 font-medium"
           >
             ← Main
           </button>
-          <h1 className="text-xl font-bold text-gray-800">My Closet</h1>
+          <h1 className="hidden md:block text-xl font-bold text-gray-800">My Closet</h1>
+
+          {/* 모바일 전용: Swell 로고 */}
+          <h1
+            className="md:hidden text-[20px] font-bold text-gray-900 flex items-center gap-2 cursor-pointer font-snippet"
+            onClick={() => {
+              sessionStorage.setItem("mainPageNavigating", "true");
+              router.push("/main");
+            }}
+          >
+            Swell
+          </h1>
         </div>
-        
+
         {/* 프로필 드롭다운 */}
         <div className="relative" ref={dropdownRef}>
           <button
@@ -263,15 +280,15 @@ export default function ClosetPage() {
             <span className="font-medium">{userName}</span>
             <span className={`transition-transform duration-200 ${showDropdown ? "rotate-180" : ""}`}>▼</span>
           </button>
-          
+
           {showDropdown && (
-            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-2 z-50">
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-2 z-50 animate-fadeIn">
               <button
                 onClick={() => {
                   router.push("/favorites");
                   setShowDropdown(false);
                 }}
-                className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-sm"
+                className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-[13px]"
               >
                 ❤️ 좋아요한 코디
               </button>
@@ -280,7 +297,7 @@ export default function ClosetPage() {
                   handleLogout();
                   setShowDropdown(false);
                 }}
-                className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-sm"
+                className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-[13px]"
               >
                 🚪 Logout
               </button>
@@ -289,9 +306,9 @@ export default function ClosetPage() {
         </div>
       </nav>
 
-      {/* 메인 컨텐츠 */}
-      <div className="flex-1 flex overflow-hidden">
-        
+      {/* 데스크톱: 기존 레이아웃 */}
+      <div className="hidden md:flex flex-1 overflow-hidden">
+
         {/* 왼쪽: 가상 피팅 영역 */}
         <div className="w-[45%] p-6 flex">
           {/* 사진 영역 */}
@@ -566,6 +583,250 @@ export default function ClosetPage() {
           </div>
         </div>
       </div>
+
+      {/* 모바일: 탭 기반 레이아웃 */}
+      <div className="md:hidden flex-1 flex flex-col overflow-hidden pb-14">
+        {/* 탭 헤더 */}
+        <div className="flex border-b border-gray-200 bg-transparent backdrop-blur-sm flex-shrink-0">
+          <button
+            onClick={() => setActiveTab('fitting')}
+            className={`flex-1 py-3 text-sm font-medium transition-all ${
+              activeTab === 'fitting'
+                ? 'text-[#5697B0] border-b-2 border-[#5697B0]'
+                : 'text-gray-500'
+            }`}
+          >
+            가상 피팅
+          </button>
+          <button
+            onClick={() => setActiveTab('items')}
+            className={`flex-1 py-3 text-sm font-medium transition-all ${
+              activeTab === 'items'
+                ? 'text-[#5697B0] border-b-2 border-[#5697B0]'
+                : 'text-gray-500'
+            }`}
+          >
+            아이템 목록
+          </button>
+        </div>
+
+        {/* 피팅 탭 */}
+        {activeTab === 'fitting' && (
+          <div className="flex-1 flex flex-col p-4 overflow-auto">
+            {/* 사진 영역 - 더 크게 */}
+            <div className="aspect-[3/4] bg-white rounded-2xl shadow-lg overflow-hidden relative mb-3">
+              {fittingStatus === "processing" ? (
+                <div className="h-full flex flex-col items-center justify-center p-8">
+                  <video
+                    src="/videos/logo_animation.mp4"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-32 h-32 object-contain mb-4"
+                  />
+                  <p className="text-gray-600 text-center font-medium text-sm">{fittingProgress}</p>
+                  <p className="text-xs text-gray-400 mt-2">잠시만 기다려주세요...</p>
+                </div>
+              ) : fittingResult ? (
+                <div className="h-full relative">
+                  <img
+                    src={fittingResult}
+                    alt="피팅 결과"
+                    className="w-full h-full object-contain"
+                  />
+                  <button
+                    onClick={() => {
+                      setFittingResult(null);
+                      setLlmMessage(null);
+                      setFittingStatus("idle");
+                    }}
+                    className="absolute top-3 right-3 px-3 py-1.5 bg-white/90 rounded-lg shadow hover:bg-white transition text-xs font-medium"
+                  >
+                    다시 피팅
+                  </button>
+                  {llmMessage && (
+                    <div className="absolute bottom-3 left-3 right-3 bg-[#B7C9E2]/80 backdrop-blur-sm rounded-xl p-3 shadow-xl border border-white/20">
+                      <p className="text-black text-xs leading-relaxed font-medium">
+                        💬 {llmMessage}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : userPhoto ? (
+                <div className="h-full relative">
+                  <img
+                    src={userPhoto}
+                    alt="내 사진"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              ) : (
+                <div
+                  className="h-full flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <div className="text-5xl mb-3">📷</div>
+                  <p className="text-gray-600 font-medium text-sm">사진을 업로드하세요</p>
+                  <p className="text-xs text-gray-400 mt-1">클릭하여 파일 선택</p>
+                </div>
+              )}
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoUpload}
+                className="hidden"
+              />
+            </div>
+
+            {/* 옷걸이 슬롯 (가로 3개) - 더 작게 */}
+            <div className="flex gap-2 mb-3">
+              {(["상의", "하의", "아우터"] as const).map((slotCategory) => (
+                <div
+                  key={slotCategory}
+                  className="flex-1 bg-white rounded-lg shadow border border-dashed border-gray-300 p-1.5 relative"
+                >
+                  <p className="text-[9px] text-gray-400 text-center mb-0.5">{slotCategory}</p>
+                  {getSlotItem(slotCategory) ? (
+                    <div className="relative">
+                      <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                        {getSlotItem(slotCategory)?.imageUrl ? (
+                          <img
+                            src={getSlotItem(slotCategory)!.imageUrl!}
+                            alt={getSlotItem(slotCategory)?.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <span className="text-2xl">
+                              {slotCategory === "상의" ? "👔" : slotCategory === "하의" ? "👖" : "🧥"}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => handleRemoveFromSlot(slotCategory)}
+                        className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600 transition shadow-md"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="aspect-square bg-gray-50 rounded-lg flex items-center justify-center">
+                      <span className="text-gray-300 text-xl">+</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* 버튼 영역 */}
+            <div className="flex gap-2">
+              {userPhoto && (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-4 py-2.5 border-2 border-gray-300 rounded-xl hover:bg-gray-50 transition font-medium text-sm"
+                >
+                  사진 변경
+                </button>
+              )}
+              <button
+                onClick={handleFitting}
+                disabled={!canFit || fittingStatus === "processing"}
+                className="flex-1 py-2.5 bg-[#5697B0] text-white rounded-xl font-medium hover:opacity-90 disabled:bg-gray-300 disabled:cursor-not-allowed transition text-sm"
+              >
+                {fittingStatus === "processing" ? "피팅 중..." : "피팅 확인하기"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 아이템 탭 */}
+        {activeTab === 'items' && (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* 카테고리 필터 */}
+            <div className="flex flex-wrap gap-2 p-4 pb-3 flex-shrink-0">
+              {categories.map((category) => (
+                <button
+                  key={category}
+                  onClick={() => setSelectedCategory(category)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                    selectedCategory === category
+                      ? "bg-[#5697B0] text-white"
+                      : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
+                  }`}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+
+            {/* 아이템 그리드 (2열) */}
+            <div className="flex-1 overflow-auto px-4 pb-4">
+              <div className="grid grid-cols-2 gap-3">
+                {filteredItems.map((item) => {
+                  const koreanCategory = CATEGORY_MAP_REVERSE[item.category as FittingCategory];
+                  const isInSlot =
+                    fittingSlots.상의 === item.id ||
+                    fittingSlots.하의 === item.id ||
+                    fittingSlots.아우터 === item.id;
+
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => handleItemClick(item)}
+                      className={`bg-white rounded-xl p-2.5 transition-all ${
+                        isInSlot
+                          ? "ring-2 ring-[#5697B0] bg-blue-50"
+                          : "shadow hover:shadow-md"
+                      }`}
+                    >
+                      {/* 아이템 이미지 */}
+                      <div className="aspect-square bg-gray-50 rounded-lg mb-2 flex items-center justify-center relative overflow-hidden">
+                        {item.imageUrl ? (
+                          <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-3xl">
+                            {koreanCategory === "상의" ? "👔" : koreanCategory === "하의" ? "👖" : "🧥"}
+                          </span>
+                        )}
+                        {isInSlot && (
+                          <div className="absolute top-1 right-1 w-6 h-6 bg-[#5697B0] rounded-full flex items-center justify-center text-white text-xs">
+                            ✓
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 아이템 정보 */}
+                      <p className="text-[10px] text-gray-400 mb-0.5">{item.brand || "BRAND"}</p>
+                      <p className="font-medium text-gray-800 text-xs truncate leading-tight">{item.name}</p>
+                      {item.price && (
+                        <p className="text-[#5697B0] font-bold text-xs mt-1">
+                          {item.price.toLocaleString()}원
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {filteredItems.length === 0 && (
+                <div className="flex items-center justify-center h-40 text-gray-400">
+                  <div className="text-center">
+                    <p className="text-4xl mb-2">📦</p>
+                    <p className="text-sm">이 카테고리에 저장된 아이템이 없어요</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 모바일 하단 네비게이션 바 */}
+      <MobileBottomNav />
     </div>
   );
 }

@@ -1,0 +1,60 @@
+"use client";
+
+import { useRouter, usePathname } from "next/navigation";
+import ClosetIcon from "@/components/common/ClosetIcon";
+import HomeIcon from "@/components/common/HomeIcon";
+import HeartIcon from "@/components/common/HeartIcon";
+
+export default function MobileBottomNav() {
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const navItems = [
+    {
+      path: "/closet",
+      icon: ClosetIcon,
+      onClick: () => router.push("/closet"),
+    },
+    {
+      path: "/main",
+      icon: HomeIcon,
+      onClick: () => {
+        sessionStorage.removeItem("mainPageNavigating");
+        window.location.href = "/main";
+      },
+    },
+    {
+      path: "/favorites",
+      icon: HeartIcon,
+      onClick: () => router.push("/favorites"),
+    },
+  ];
+
+  return (
+    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-40 safe-area-pb shadow-lg">
+      <div className="flex items-center justify-around h-14 px-4">
+        {navItems.map((item) => {
+          const isActive = pathname === item.path;
+          const IconComponent = item.icon;
+          return (
+            <button
+              key={item.path}
+              onClick={item.onClick}
+              className={`flex items-center justify-center w-12 h-12 rounded-full transition-all ${
+                isActive
+                  ? "bg-[#5697B0]/10 text-[#5697B0]"
+                  : "text-gray-400 active:bg-gray-100"
+              }`}
+            >
+              <IconComponent
+                size={24}
+                filled={isActive && item.path === "/favorites"}
+                className="transition-transform active:scale-90"
+              />
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

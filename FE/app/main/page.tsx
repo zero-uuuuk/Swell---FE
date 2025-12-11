@@ -2,9 +2,13 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSwipeable } from "react-swipeable";
+import { motion, AnimatePresence } from "framer-motion";
 import { getRecommendations, addFavorite, removeFavorite, recordViewLog, skipOutfit } from "@/lib/outfits";
 import { saveClosetItem } from "@/lib/closet";
 import { logout } from "@/lib/auth";
+import HeartIcon from "@/components/common/HeartIcon";
+import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import type { Outfit, Season, Style } from "@/types/api";
 
 export default function MainPage() {
@@ -20,38 +24,49 @@ export default function MainPage() {
   const [userName, setUserName] = useState("User");
   const [savedItems, setSavedItems] = useState<number[]>([]);
 
-  // 필터 상태
-  const [selectedSeason, setSelectedSeason] = useState<Season | undefined>(undefined);
-  const [selectedStyle, setSelectedStyle] = useState<Style | undefined>(undefined);
+  // 필터 상태 (주석 처리 - 나중에 사용 가능)
+  // const [selectedSeason, setSelectedSeason] = useState<Season | undefined>(undefined);
+  // const [selectedStyle, setSelectedStyle] = useState<Style | undefined>(undefined);
 
   // 무한 스크롤 관련 상태
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [viewStartTime, setViewStartTime] = useState<number>(Date.now());
 
-  // 필터링된 코디 목록 (클라이언트 사이드 필터링)
-  const outfits = allOutfits.filter(outfit => {
-    if (selectedSeason && outfit.season !== selectedSeason) return false;
-    if (selectedStyle && outfit.style !== selectedStyle) return false;
-    return true;
-  });
-  
+  // 모바일 하단 시트 상태
+  const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
+
+  // 스와이프 방향 애니메이션
+  const [swipeDirection, setSwipeDirection] = useState<"left" | "right" | null>(null);
+
+  // 더블 탭 감지
+  const lastTapRef = useRef<number>(0);
+  const [showDoubleTapHeart, setShowDoubleTapHeart] = useState(false);
+
+  // 필터링된 코디 목록 (클라이언트 사이드 필터링) - 주석 처리: 필터 비활성화
+  // const outfits = allOutfits.filter(outfit => {
+  //   if (selectedSeason && outfit.season !== selectedSeason) return false;
+  //   if (selectedStyle && outfit.style !== selectedStyle) return false;
+  //   return true;
+  // });
+  const outfits = allOutfits; // 필터 없이 전체 코디 표시
+
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // 필터 옵션 (백엔드 API 기반)
-  const seasons: { label: string; value: Season }[] = [
-    { label: "봄", value: "spring" },
-    { label: "여름", value: "summer" },
-    { label: "가을", value: "fall" },
-    { label: "겨울", value: "winter" },
-  ];
+  // 필터 옵션 (백엔드 API 기반) - 주석 처리: 나중에 사용 가능
+  // const seasons: { label: string; value: Season }[] = [
+  //   { label: "봄", value: "spring" },
+  //   { label: "여름", value: "summer" },
+  //   { label: "가을", value: "fall" },
+  //   { label: "겨울", value: "winter" },
+  // ];
 
-  const styles: { label: string; value: Style }[] = [
-    { label: "캐주얼", value: "casual" },
-    { label: "미니멀", value: "minimal" },
-    { label: "스트릿", value: "street" },
-    { label: "스포티", value: "sporty" },
-  ];
+  // const styles: { label: string; value: Style }[] = [
+  //   { label: "캐주얼", value: "casual" },
+  //   { label: "미니멀", value: "minimal" },
+  //   { label: "스트릿", value: "street" },
+  //   { label: "스포티", value: "sporty" },
+  // ];
 
   // 드롭다운 외부 클릭 시 닫기
   useEffect(() => {
@@ -178,29 +193,29 @@ export default function MainPage() {
     fetchOutfits();
   }, []);
 
-  // 필터 변경 추적용 ref
-  const prevSeasonRef = useRef<Season | undefined>(selectedSeason);
-  const prevStyleRef = useRef<Style | undefined>(selectedStyle);
-  const isFirstRenderRef = useRef(true);
+  // 필터 변경 추적용 ref - 주석 처리: 필터 비활성화
+  // const prevSeasonRef = useRef<Season | undefined>(selectedSeason);
+  // const prevStyleRef = useRef<Style | undefined>(selectedStyle);
+  // const isFirstRenderRef = useRef(true);
 
-  // 필터 변경 시 인덱스 리셋 (초기 렌더링 제외)
-  useEffect(() => {
-    // 첫 렌더링은 건너뛰기
-    if (isFirstRenderRef.current) {
-      isFirstRenderRef.current = false;
-      prevSeasonRef.current = selectedSeason;
-      prevStyleRef.current = selectedStyle;
-      return;
-    }
+  // 필터 변경 시 인덱스 리셋 (초기 렌더링 제외) - 주석 처리: 필터 비활성화
+  // useEffect(() => {
+  //   // 첫 렌더링은 건너뛰기
+  //   if (isFirstRenderRef.current) {
+  //     isFirstRenderRef.current = false;
+  //     prevSeasonRef.current = selectedSeason;
+  //     prevStyleRef.current = selectedStyle;
+  //     return;
+  //   }
 
-    // 실제로 필터가 변경되었을 때만 리셋
-    if (prevSeasonRef.current !== selectedSeason || prevStyleRef.current !== selectedStyle) {
-      setCurrentIndex(0);
-      console.log("필터 변경: 인덱스 0으로 리셋");
-      prevSeasonRef.current = selectedSeason;
-      prevStyleRef.current = selectedStyle;
-    }
-  }, [selectedSeason, selectedStyle]);
+  //   // 실제로 필터가 변경되었을 때만 리셋
+  //   if (prevSeasonRef.current !== selectedSeason || prevStyleRef.current !== selectedStyle) {
+  //     setCurrentIndex(0);
+  //     console.log("필터 변경: 인덱스 0으로 리셋");
+  //     prevSeasonRef.current = selectedSeason;
+  //     prevStyleRef.current = selectedStyle;
+  //   }
+  // }, [selectedSeason, selectedStyle]);
 
   const currentOutfit = outfits[currentIndex];
 
@@ -232,11 +247,13 @@ export default function MainPage() {
       // 현재 코디의 view log 기록 (백그라운드, await 없이)
       recordCurrentView();
 
+      setSwipeDirection("right");
       setIsTransitioning(true);
       setTimeout(() => {
         setCurrentIndex(currentIndex - 1);
         setViewStartTime(Date.now());
         setIsTransitioning(false);
+        setSwipeDirection(null);
       }, 300);
     }
   };
@@ -253,11 +270,13 @@ export default function MainPage() {
         });
       }
 
+      setSwipeDirection("left");
       setIsTransitioning(true);
       setTimeout(() => {
         setCurrentIndex(currentIndex + 1);
         setViewStartTime(Date.now());
         setIsTransitioning(false);
+        setSwipeDirection(null);
       }, 300);
 
       // 15번째 인덱스에서 백그라운드로 다음 페이지 로드
@@ -267,6 +286,34 @@ export default function MainPage() {
       }
     }
   };
+
+  // 스와이프 핸들러
+  const swipeHandlers = useSwipeable({
+    onSwipedLeft: () => {
+      if (!isBottomSheetOpen) {
+        handleNext();
+      }
+    },
+    onSwipedRight: () => {
+      if (!isBottomSheetOpen) {
+        handlePrev();
+      }
+    },
+    onSwipedUp: () => {
+      setIsBottomSheetOpen(true);
+    },
+    preventScrollOnSwipe: true,
+    trackMouse: false,
+  });
+
+  // 하단 시트용 스와이프 핸들러
+  const bottomSheetSwipeHandlers = useSwipeable({
+    onSwipedDown: () => {
+      setIsBottomSheetOpen(false);
+    },
+    preventScrollOnSwipe: false,
+    trackMouse: false,
+  });
 
   // 좋아요 토글
   const handleToggleLike = async () => {
@@ -300,6 +347,24 @@ export default function MainPage() {
     }
   };
 
+  // 더블 탭 핸들러
+  const handleDoubleTap = () => {
+    const now = Date.now();
+    const timeSinceLastTap = now - lastTapRef.current;
+
+    if (timeSinceLastTap < 300 && timeSinceLastTap > 0) {
+      // 더블 탭 감지
+      if (currentOutfit && !currentOutfit.isFavorite) {
+        handleToggleLike();
+        // 하트 애니메이션 표시
+        setShowDoubleTapHeart(true);
+        setTimeout(() => setShowDoubleTapHeart(false), 1000);
+      }
+    }
+
+    lastTapRef.current = now;
+  };
+
   // 로그아웃
   const handleLogout = async () => {
     try {
@@ -315,23 +380,23 @@ export default function MainPage() {
     }
   };
 
-  // 계절 필터 토글
-  const toggleSeason = (season: Season) => {
-    if (selectedSeason === season) {
-      setSelectedSeason(undefined);
-    } else {
-      setSelectedSeason(season);
-    }
-  };
+  // 계절 필터 토글 - 주석 처리: 필터 비활성화
+  // const toggleSeason = (season: Season) => {
+  //   if (selectedSeason === season) {
+  //     setSelectedSeason(undefined);
+  //   } else {
+  //     setSelectedSeason(season);
+  //   }
+  // };
 
-  // 스타일 필터 토글
-  const toggleStyle = (style: Style) => {
-    if (selectedStyle === style) {
-      setSelectedStyle(undefined);
-    } else {
-      setSelectedStyle(style);
-    }
-  };
+  // 스타일 필터 토글 - 주석 처리: 필터 비활성화
+  // const toggleStyle = (style: Style) => {
+  //   if (selectedStyle === style) {
+  //     setSelectedStyle(undefined);
+  //   } else {
+  //     setSelectedStyle(style);
+  //   }
+  // };
 
   // 옷장에 아이템 저장
   const handleSaveToCloset = async (itemId: number) => {
@@ -431,13 +496,13 @@ export default function MainPage() {
       </nav>
 
       {/* 메인 컨텐츠 영역 */}
-      <div className="flex-1 relative flex justify-center items-center px-6 py-8">
+      <div className="flex-1 relative flex justify-center items-center px-6 py-8 md:pb-8 pb-24">
 
-        {/* 네비게이션 화살표 */}
+        {/* 네비게이션 화살표 - 데스크톱 전용 */}
         <button
           onClick={handlePrev}
           disabled={currentIndex === 0 || isTransitioning || outfits.length === 0}
-          className="absolute left-6 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-gray-500/80 backdrop-blur-sm shadow-lg flex items-center justify-center text-white text-xl disabled:opacity-30 hover:bg-black transition-all hover:scale-105"
+          className="hidden md:flex absolute left-6 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-gray-500/80 backdrop-blur-sm shadow-lg items-center justify-center text-white text-xl disabled:opacity-30 hover:bg-black transition-all hover:scale-105"
         >
           ←
         </button>
@@ -445,13 +510,14 @@ export default function MainPage() {
         <button
           onClick={handleNext}
           disabled={currentIndex === outfits.length - 1 || isTransitioning || outfits.length === 0}
-          className="absolute right-6 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-gray-500/80 backdrop-blur-sm shadow-lg flex items-center justify-center text-white text-xl disabled:opacity-30 hover:bg-black transition-all hover:scale-105"
+          className="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-gray-500/80 backdrop-blur-sm shadow-lg items-center justify-center text-white text-xl disabled:opacity-30 hover:bg-black transition-all hover:scale-105"
         >
           →
         </button>
 
         {/* 스와이프 컨텐츠 */}
         <div
+          {...swipeHandlers}
           className={`max-w-[1400px] w-full flex gap-40 transition-opacity duration-300 ${
             isTransitioning ? "opacity-0" : "opacity-100"
           }`}
@@ -460,9 +526,12 @@ export default function MainPage() {
           <div className="w-full md:w-[45%] flex items-center justify-center">
             {outfits.length > 0 && currentOutfit ? (
               <div className="relative w-full aspect-[3/4] max-h-[calc(100vh-200px)]">
-                
+
                 {/* 코디 이미지 카드 */}
-                <div className="bg-white rounded-[16px] shadow-xl overflow-hidden h-full border border-gray-100">
+                <div
+                  className="bg-white rounded-[16px] shadow-xl overflow-hidden h-full border border-gray-100"
+                  onClick={handleDoubleTap}
+                >
                   <div className="h-full bg-gray-100 flex items-center justify-center relative group">
                     {currentOutfit.imageUrl ? (
                       <img
@@ -479,19 +548,47 @@ export default function MainPage() {
                         </p>
                       </div>
                     )}
+
+                    {/* 더블 탭 하트 애니메이션 */}
+                    <AnimatePresence>
+                      {showDoubleTapHeart && (
+                        <motion.div
+                          initial={{ scale: 0, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          exit={{ scale: 1.3, opacity: 0 }}
+                          transition={{ duration: 0.6, ease: "easeOut" }}
+                          className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"
+                        >
+                          <div className="relative">
+                            {/* 글로우 효과 */}
+                            <div className="absolute inset-0 blur-2xl bg-pink-300/50 scale-150"></div>
+                            {/* 메인 하트 */}
+                            <HeartIcon
+                              filled={true}
+                              size={120}
+                              className="relative text-pink-500 drop-shadow-2xl"
+                            />
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </div>
 
-                {/* 좋아요 버튼 */}
+                {/* 좋아요 버튼 - 크기 축소 */}
                 <button
                   onClick={handleToggleLike}
-                  className={`absolute top-4 right-4 w-14 h-14 rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-all duration-300 border border-gray-100 ${
-                    currentOutfit.isFavorite ? "bg-pink-50" : "bg-white"
+                  className={`absolute top-4 right-4 w-10 h-10 md:w-12 md:h-12 rounded-full shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-300 border ${
+                    currentOutfit.isFavorite
+                      ? "bg-pink-50 border-pink-200 text-pink-500"
+                      : "bg-white/90 backdrop-blur-sm border-gray-200 text-gray-400"
                   }`}
                 >
-                  <span className={`text-3xl transition-transform ${currentOutfit.isFavorite ? "scale-110" : "scale-100"}`}>
-                    {currentOutfit.isFavorite ? "❤️" : "🤍"}
-                  </span>
+                  <HeartIcon
+                    filled={currentOutfit.isFavorite}
+                    size={20}
+                    className={currentOutfit.isFavorite ? "scale-110" : "scale-100"}
+                  />
                 </button>
 
                 {/* LLM 메시지 */}
@@ -514,10 +611,10 @@ export default function MainPage() {
 
           {/* 오른쪽: 필터 + 상품 정보 */}
           <div className="hidden md:flex flex-col overflow-hidden" style={{ width: '600px' }}>
-            {/* 필터 영역 */}
-            <div className="mb-6 flex-shrink-0">
+            {/* 필터 영역 - 주석 처리: 필터 비활성화 */}
+            {/* <div className="mb-6 flex-shrink-0"> */}
               {/* 계절 필터 */}
-              <div className="mb-4">
+              {/* <div className="mb-4">
                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Season</h3>
                 <div className="flex flex-wrap gap-2">
                   {seasons.map((season) => (
@@ -542,10 +639,10 @@ export default function MainPage() {
                     </button>
                   )}
                 </div>
-              </div>
+              </div> */}
 
               {/* 스타일 필터 */}
-              <div>
+              {/* <div>
                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Style</h3>
                 <div className="flex flex-wrap gap-2">
                   {styles.map((style) => (
@@ -570,8 +667,8 @@ export default function MainPage() {
                     </button>
                   )}
                 </div>
-              </div>
-            </div>
+              </div> */}
+            {/* </div> */}
 
             {/* 상품 목록 */}
             {currentOutfit && (
@@ -658,20 +755,133 @@ export default function MainPage() {
         </div>
       </div>
 
-      {/* 옷장 플로팅 버튼 */}
+      {/* 옷장 플로팅 버튼 - 데스크톱 전용 */}
       <button
         onClick={() => router.push("/closet")}
-        className="fixed bottom-10 right-12 w-18 h-18 bg-[#FFF4EA] text-[#5697B0] border-4 border-white rounded-full shadow-2xl flex items-center justify-center text-5xl hover:bg-[#ffeedb] hover:scale-105 transition-all z-30 group"
+        className="hidden md:flex fixed bottom-10 right-12 w-18 h-18 bg-[#FFF4EA] text-[#5697B0] border-4 border-white rounded-full shadow-2xl items-center justify-center text-5xl hover:bg-[#ffeedb] hover:scale-105 transition-all z-30 group"
       >
         <span className="group-hover:rotate-12 transition-transform duration-300">👜</span>
       </button>
 
-      {/* 진행 표시 */}
-      {outfits.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg text-sm text-gray-600">
-          {currentIndex + 1} / {outfits.length}
-        </div>
-      )}
+      {/* 모바일 하단 네비게이션 바 */}
+      <MobileBottomNav />
+
+      {/* 모바일 하단 시트 (상품 목록) */}
+      <AnimatePresence>
+        {isBottomSheetOpen && (
+          <>
+            {/* 배경 오버레이 */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="md:hidden fixed inset-0 bg-black/40 z-40"
+              onClick={() => setIsBottomSheetOpen(false)}
+            />
+
+            {/* 하단 시트 */}
+            <motion.div
+              {...bottomSheetSwipeHandlers}
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="md:hidden fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl z-50 max-h-[75vh] flex flex-col"
+            >
+              {/* 핸들 */}
+              <div className="flex justify-center py-3 border-b border-gray-100">
+                <div className="w-12 h-1.5 bg-gray-300 rounded-full"></div>
+              </div>
+
+              {/* 상품 목록 헤더 */}
+              {currentOutfit && (
+                <div className="px-6 py-4 border-b border-gray-100">
+                  <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <span>Items</span>
+                    <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                      {currentOutfit.items.length}
+                    </span>
+                  </h2>
+                </div>
+              )}
+
+              {/* 상품 목록 */}
+              {currentOutfit && (
+                <div className="flex-1 overflow-y-auto px-6 py-4">
+                  <div className="flex flex-col gap-3 pb-6">
+                    {currentOutfit.items.map((item) => (
+                      <div
+                        key={item.id}
+                        className="bg-white rounded-lg shadow-sm border border-gray-100 p-3 flex gap-3 active:bg-gray-50 transition-colors"
+                      >
+                        {/* 상품 이미지 */}
+                        <div className="w-20 h-20 bg-gray-50 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                          {item.imageUrl ? (
+                            <img
+                              src={item.imageUrl}
+                              alt={item.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-2xl">👔</span>
+                          )}
+                        </div>
+
+                        {/* 상품 정보 */}
+                        <div className="flex-1 flex flex-col justify-between min-w-0">
+                          <div>
+                            <p className="text-[11px] text-gray-400 font-bold tracking-wide">
+                              {item.brand || "BRAND"}
+                            </p>
+                            {item.purchaseUrl ? (
+                              <a
+                                href={item.purchaseUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-medium text-gray-800 text-sm truncate leading-tight hover:text-[#5697B0] active:text-[#5697B0]"
+                              >
+                                {item.name}
+                              </a>
+                            ) : (
+                              <p className="font-medium text-gray-800 text-sm truncate leading-tight">
+                                {item.name}
+                              </p>
+                            )}
+                            <p className="text-[11px] text-gray-400 mt-0.5">
+                              {item.category}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center justify-between mt-2">
+                            {item.price ? (
+                              <p className="text-[#5697B0] font-bold text-sm">
+                                {item.price.toLocaleString()}원
+                              </p>
+                            ) : (
+                              <p className="text-gray-400 text-sm">가격 문의</p>
+                            )}
+                            <button
+                              onClick={() => handleSaveToCloset(item.id)}
+                              className={`px-3 py-1.5 text-[10px] rounded-md transition-all font-medium ${
+                                savedItems.includes(item.id)
+                                  ? "bg-gray-800 text-white"
+                                  : "bg-gray-100 text-gray-600 active:bg-gray-200"
+                              }`}
+                            >
+                              {savedItems.includes(item.id) ? "Saved ✓" : "Add Closet"}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
