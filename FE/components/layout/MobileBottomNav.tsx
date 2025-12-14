@@ -31,7 +31,7 @@ export default function MobileBottomNav() {
   ];
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-[100] safe-area-pb shadow-lg">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-[100] pb-[env(safe-area-inset-bottom)] shadow-lg">
       <div className="flex items-center justify-around h-14 px-4">
         {navItems.map((item) => {
           const isActive = pathname === item.path;
