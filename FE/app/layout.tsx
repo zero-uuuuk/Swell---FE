@@ -1,5 +1,5 @@
 // app/layout.tsx
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Outfit, Manrope, Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
 
@@ -28,6 +28,13 @@ const notoSansKr = Noto_Sans_KR({
 export const metadata: Metadata = {
   title: "Swell - 패션 코디 추천",
   description: "AI 기반 패션 코디 추천 및 가상 피팅 서비스",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false, // 사용자가 화면 크기를 조절하지 못하도록 설정
 };
 
 export default function RootLayout({
